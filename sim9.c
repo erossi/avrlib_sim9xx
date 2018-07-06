@@ -821,12 +821,12 @@ void apn_setup(void)
 
 	if (sim9_searchfor("+COPS:", 5, s, SIZEOF_S, RELAX)) {
 		/* memcmp false when match */
-		if (!memcmp(s + 12, "I TIM", 5))
+		if (!memcmp(s + 12, "I TIM", 5)) // TIM
 			sim9->status.provider = 3;
-		else if (!memcmp(s + 12, "Vodaf", 5))
-			sim9->status.provider = 3;
+		else if (!memcmp(s + 13, "odafo", 5)) // [V,v]odafone
+			sim9->status.provider = 2;
 		else
-			sim9->status.provider = 1;
+			sim9->status.provider = 1; // others
 
 		sim9_searchfor_P(PSTR("OK"), 5, NULL, 0, RELAX);
 	} else {
@@ -874,19 +874,19 @@ void sim9_tcpip_on(void)
 
 	/* start task */
 	switch(sim9->status.provider) {
-		case 1:
+		case 1: // others
 			sim9_send_at_P(PSTR("AT+CSTT=\"internet\""),
 					NULL, 0, SENDAT_TYPE_OK);
 			break;
-		case 2:
+		case 2: // Vodafone
 			sim9_send_at_P(PSTR("AT+CSTT=\"web.omnitel.it\""),
 					NULL, 0, SENDAT_TYPE_OK);
 			break;
-		case 3:
+		case 3: // TIM
 			sim9_send_at_P(PSTR("AT+CSTT=\"ibox.tim.it\""),
 					NULL, 0, SENDAT_TYPE_OK);
 			break;
-		default:
+		default: // Error
 			sim9->errors.apn = TRUE;
 	}
 
