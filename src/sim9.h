@@ -31,16 +31,11 @@
 
 /* Fix these settings to match your circuit */
 
-/*! Pout ON. */
-#define SIM9_PIN_ON PA6
-/*! Pin status */
-#define SIM9_STATUS PA5
-/*! Pin ring indicator */
-#define SIM9_RI PA4
-/*! Pin NET status */
-#define SIM9_NET_ST PD6
-/*! Pin DTR */
-#define SIM9_DTR PA7
+#define SIM9_PIN_ON PA6 //! Pout ON.
+#define SIM9_STATUS PA5 //! Pin status
+#define SIM9_RI PA4 //! Pin ring indicator
+#define SIM9_NET_ST PD6 //! Pin NET status
+#define SIM9_DTR PA7 //! Pin DTR
 
 /*! USART port where the modem is connected.
  *
@@ -91,20 +86,14 @@
 #define ALARM_CLEAR 4
 #define ALARM_CHECK 5
 
-/*! IMEI size */
-#define IMEI_SIZE 18
+#define IMEI_SIZE 18 //! IMEI size
 
 /*! status flags */
-/*! Ready (pin ok, network registered) */
-#define SIM9_ST_RDY 0
-/*! GPRS registered */
-#define SIM9_ST_GPRS 1
-/*! CID enabled */
-#define SIM9_ST_CID 2
-/*! http stack enabled */
-#define SIM9_ST_SAPBR 3
-/*! http stack enabled */
-#define SIM9_ST_HTTP 4
+#define SIM9_ST_RDY 0 //! Ready (pin ok, network registered)
+#define SIM9_ST_GPRS 1 //! GPRS registered
+#define SIM9_ST_CID 2 //! CID enabled
+#define SIM9_ST_SAPBR 3 //! http stack enabled
+#define SIM9_ST_HTTP 4 //! http stack enabled
 
 #define GPS_LAT_SIZE 12
 #define GPS_LON_SIZE 12
@@ -123,21 +112,15 @@ struct sim9_t {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 			/* lsb bit 0 */
 			uint16_t ready:1;
-			/* GPRS connected */
-			uint16_t gprs:1;
+			uint16_t gprs:1; // GPRS connected
 			uint16_t cid:1;
 			uint16_t sapbr:1;
 			uint16_t http:1;
-			/* 1 - Internet, 2 - VODAFONE, 3 - TIM */
-			uint16_t provider:2;
-			/* tcpip transparent mode */
-			uint16_t tsmode:1;
-			/* AT+CIPSTATUS 0-9 */
-			uint16_t tcpip:4;
-			/* command echo */
-			uint16_t echo:1;
-			/* On/Off line */
-			uint16_t connected:1;
+			uint16_t provider:2; // 1 Internet, 2 VODAFONE, 3 TIM
+			uint16_t tsmode:1; // tcpip transparent mode
+			uint16_t tcpip:4; // AT+CIPSTATUS 0-9
+			uint16_t echo:1; // command echo
+			uint16_t connected:1; // On/Off line
 			uint16_t unused:2;
 #else
 			/* msb */
@@ -174,14 +157,14 @@ struct sim9_t {
 			uint16_t netreg:1;
 			uint16_t discon:1;
 			uint16_t gprs:1;
-			/* esc +++ sequence failed */
-			uint16_t esc:1;
-			/* ATO command failed */
-			uint16_t connected:1;
-			uint16_t unused:5;
+			uint16_t esc:1; // esc +++ sequence failed
+			uint16_t connected:1; // ATO command failed
+			uint16_t gps:1; // No Fix
+			uint16_t unused:4;
 #else
 			/* msb */
-			uint16_t unused:5;
+			uint16_t unused:4;
+			uint16_t gps:1;
 			uint16_t connected:1;
 			uint16_t esc:1;
 			uint16_t gprs:1;
@@ -199,6 +182,22 @@ struct sim9_t {
 
 		uint16_t all;
 	} errors;
+
+	// Generic flags
+	union {
+		uint8_t flags;
+		struct {
+
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+			uint8_t gps_enable:1; // Enable GPS
+			uint8_t unused:7;
+#else
+			uint8_t unused:7;
+			uint8_t gps_ena:1;
+#endif
+
+		};
+	};
 
 	char *imei;
 	char *gps_lat;

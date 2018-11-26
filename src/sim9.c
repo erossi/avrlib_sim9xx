@@ -606,7 +606,6 @@ void sim9_resume(void)
  * Also allocate the RXTX struct buffer.
  *
  * \note if the IRQ is used, then it must be already enabled.
- *
  * \warning flags will be cleared on every sim9_on()
  */
 struct sim9_t* sim9_init(void)
@@ -616,6 +615,7 @@ struct sim9_t* sim9_init(void)
 		/* clear flags */
 		sim9->status.all = 0;
 		sim9->errors.all = 0;
+		sim9->flags = 0;
 		/* allocate the IMEI string */
 		sim9->imei = malloc(IMEI_SIZE);
 		*(sim9->imei) = 0;
