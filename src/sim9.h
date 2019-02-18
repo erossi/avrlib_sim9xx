@@ -88,6 +88,11 @@
 
 #define IMEI_SIZE 18 //! IMEI size
 
+//! APN 3d provider setup
+#define SIM9_APN_SITE internet
+#define SIM9_APN_USER
+#define SIM9_APN_PASSWORD
+
 /*! status flags */
 #define SIM9_ST_RDY 0 //! Ready (pin ok, network registered)
 #define SIM9_ST_GPRS 1 //! GPRS registered

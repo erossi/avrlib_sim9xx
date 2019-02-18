@@ -875,7 +875,7 @@ void sim9_tcpip_on(void)
 	/* start task */
 	switch(sim9->status.provider) {
 		case 1: // others
-			sim9_send_at_P(PSTR("AT+CSTT=\"internet\""),
+			sim9_send_at_P(PSTR("AT+CSTT=\"SIM9_APN_SITE\",\"SIM9_APN_USER\",\"SIM9_APN_PASSWORD\""),
 					NULL, 0, SENDAT_TYPE_OK);
 			break;
 		case 2: // Vodafone
