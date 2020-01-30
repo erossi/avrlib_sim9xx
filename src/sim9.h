@@ -1,4 +1,4 @@
-/* Copyright (C) 2014-2018 Enrico Rossi
+/* Copyright (C) 2014-2020 Enrico Rossi
 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -19,6 +19,10 @@
 /*! \file sim9.h
  * \brief SIM900 functions
  *
+ * In order to complile, the template file apn_config_template.h
+ * must be renamed to apn_config.h and edited to fix the APN.
+ * Check with the network provider for those values.
+ *
  * \important Command sent to the modem MUST be terminated with
  * '\r' char and not '\n'.
  */
@@ -28,6 +32,7 @@
 
 #include <avr/pgmspace.h>
 #include "usart.h"
+#include "apn_config.h" // Edit and FIX the provided template
 
 /* Fix these settings to match your circuit */
 
@@ -88,11 +93,6 @@
 
 #define IMEI_SIZE 18 //! IMEI size
 
-//! APN 3d provider setup
-#define SIM9_APN_SITE internet
-#define SIM9_APN_USER
-#define SIM9_APN_PASSWORD
-
 /*! status flags */
 #define SIM9_ST_RDY 0 //! Ready (pin ok, network registered)
 #define SIM9_ST_GPRS 1 //! GPRS registered
@@ -126,10 +126,12 @@ struct sim9_t {
 			uint16_t tcpip:4; // AT+CIPSTATUS 0-9
 			uint16_t echo:1; // command echo
 			uint16_t connected:1; // On/Off line
-			uint16_t unused:2;
+			uint16_t roaming:1; // Working in roaming
+			uint16_t unused:1;
 #else
 			/* msb */
-			uint16_t unused:2;
+			uint16_t unused:1;
+			uint16_t roaming:1;
 			uint16_t connected:1;
 			uint16_t echo:1;
 			uint16_t tcpip:4;

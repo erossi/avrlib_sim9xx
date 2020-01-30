@@ -1,4 +1,4 @@
-/* Copyright (C) 2014-2018 Enrico Rossi
+/* Copyright (C) 2014-2020 Enrico Rossi
 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -372,7 +372,7 @@ uint8_t sim9_searchfor_P(PGM_P s, uint8_t count,
  * will be no message present in the buffer, until an answer
  * is triggered.
  *
- * Answers can be:
+ * Answers (type param) can be:
  *
  * SENDAT_TYPE_NONE:
  *    No Answer.
@@ -402,7 +402,7 @@ uint8_t sim9_searchfor_P(PGM_P s, uint8_t count,
  * \param msg the <something> needed back.
  * \param type the type of answer, see above.
  */
-uint8_t sim9_send_at(const char * cmd, char * msg,
+uint8_t sim9_send_at(const char* cmd, char* msg,
 		const uint8_t size, const uint8_t type)
 {
 	uint8_t ok = TRUE;
@@ -451,6 +451,9 @@ uint8_t sim9_send_at(const char * cmd, char * msg,
 }
 
 /*! PROGMEM version of the send_at()
+ *
+ * Copy the command from the eeprom to ram and call
+ * the sim9_send_at().
  *
  * \see sim9_send_at
  * \warning allocate strlen(cmd)
@@ -566,26 +569,25 @@ void pin_check(void)
  */
 void network_registered(void)
 {
-#define SOB626 20 /* temp buffer */
-
 	char *buffer;
 	uint8_t retry=5;
 
-	buffer = malloc(SOB626);
+	buffer = malloc(20); // String returned by the modem
 	sim9->errors.netreg = TRUE;
 
 	while (sim9->errors.netreg && retry--) {
-		/* Wait some time to get registered
-		 * in the network.
-		 */
-		_delay_ms(2000);
+		_delay_ms(2000); // Wait some time to get registered
 
 		if (sim9_send_at_P(PSTR("AT+CGREG?"),
-					buffer, SOB626,
-					SENDAT_TYPE_MSGOK) &&
-				!memcmp_P(buffer,
-					PSTR("+CGREG: 0,1"), 11))
-			sim9->errors.netreg = FALSE;
+					buffer, 20, SENDAT_TYPE_MSGOK)) {
+			if (!memcmp_P(buffer, PSTR("+CGREG: 0,1"), 11)) {
+				sim9->status.roaming = FALSE;
+				sim9->errors.netreg = FALSE;
+			} else if (!memcmp_P(buffer, PSTR("+CGREG: 0,5"), 11)) {
+				sim9->status.roaming = TRUE;
+				sim9->errors.netreg = FALSE;
+			}
+		}
 	}
 
 	free(buffer);
@@ -801,42 +803,6 @@ void gprs_disconnect(void)
 	}
 }
 
-/*! APN setup
- *
- * Try to automatically setup the APN.
- * Switch to Internet if neither VODAFONE or TIM is found.
- *
- * +COPS: 0,0,"I TIM"
- *
- * \note Internet should become the default.
- */
-void apn_setup(void)
-{
-#define SIZEOF_S 30
-
-	char *s;
-
-	s = malloc(SIZEOF_S);
-	sim9_send_at_P(PSTR("AT+COPS?"), NULL, 0, SENDAT_TYPE_NONE);
-
-	if (sim9_searchfor("+COPS:", 5, s, SIZEOF_S, RELAX)) {
-		/* memcmp false when match */
-		if (!memcmp(s + 12, "I TIM", 5)) // TIM
-			sim9->status.provider = 3;
-		else if (!memcmp(s + 13, "odafo", 5)) // [V,v]odafone
-			sim9->status.provider = 2;
-		else
-			sim9->status.provider = 1; // others
-
-		sim9_searchfor_P(PSTR("OK"), 5, NULL, 0, RELAX);
-	} else {
-		sim9->status.provider = 0;
-		sim9->errors.apn = TRUE;
-	}
-
-	free(s);
-}
-
 void gprs_wireless_connection(void)
 {
 	if (!sim9_send_at_P(PSTR("AT+CIICR"), NULL, 0,
@@ -869,25 +835,22 @@ void sim9_tcpip_on(void)
 	/* attach GPRS network */
 	gprs_connect();
 
-	if (sim9->status.gprs)
-		apn_setup();
+	if (sim9->status.gprs) {
+		sim9_send_at_P(PSTR("AT+COPS?"), NULL, 0, SENDAT_TYPE_OK);
+		sim9->status.provider = 1; // Force this
 
-	/* start task */
-	switch(sim9->status.provider) {
-		case 1: // others
-			sim9_send_at_P(PSTR("AT+CSTT=\"SIM9_APN_SITE\",\"SIM9_APN_USER\",\"SIM9_APN_PASSWORD\""),
-					NULL, 0, SENDAT_TYPE_OK);
-			break;
-		case 2: // Vodafone
-			sim9_send_at_P(PSTR("AT+CSTT=\"web.omnitel.it\""),
-					NULL, 0, SENDAT_TYPE_OK);
-			break;
-		case 3: // TIM
-			sim9_send_at_P(PSTR("AT+CSTT=\"ibox.tim.it\""),
-					NULL, 0, SENDAT_TYPE_OK);
-			break;
-		default: // Error
-			sim9->errors.apn = TRUE;
+		// APN Setup
+		// 16 + sizeof(OP) + sizeof(USER) + sizeof(PASSWORD) + 1
+		s = malloc(30); // FIXME calculate the correct size!
+		strcpy_P(s, PSTR("AT+CSTT=\"")); // 9 chars
+		strcat_P(s, PSTR(SIM9_APN_OP));
+		strcat_P(s, PSTR("\",\"")); // 3 chars
+		strcat_P(s, PSTR(SIM9_APN_USER));
+		strcat_P(s, PSTR("\",\"")); // 3 chars
+		strcat_P(s, PSTR(SIM9_APN_PASSWORD));
+		strcat_P(s, PSTR("\"")); // 1 chars
+		sim9_send_at(s, NULL, 0, SENDAT_TYPE_OK);
+		free(s);
 	}
 
 	if (!sim9->errors.all)
